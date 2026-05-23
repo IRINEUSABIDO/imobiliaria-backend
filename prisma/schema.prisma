@@ -9,11 +9,180 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
+// ==========================================
+// ENUMS DE DOMÍNIO
+// ==========================================
+
+enum Role {
+  CLIENTE
+  PROPRIETARIO
+  CORRETOR
+}
+
+enum PropertyType {
+  CASA
+  APARTAMENTO
+}
+
+enum TransactionType {
+  VENDA
+  ALUGUEL
+}
+
+enum PropertyStatus {
+  RASCUNHO // Adicionado: Para imóveis salvos mas não publicados
+  PUBLICADO // Renomeado: Reflete a tag verde "Publicado" da UI
+  PAUSADO
+  VENDIDO
+  ALUGADO
+  INATIVO
+}
+
+enum LeadStatus {
+  NOVO
+  RESPONDIDO
+}
+
+enum AppointmentStatus {
+  PENDENTE
+  CONFIRMADO
+  CANCELADO
+}
+
+// ==========================================
+// MODELOS
+// ==========================================
+
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id           String  @id @default(uuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  phone        String?
+  role         Role
+
+  // Relacionamentos - Cliente
+  favoriteProperties Property[]      @relation("UserFavorites")
+  searchHistory      SearchHistory[]
+  clientAppointments Appointment[]   @relation("ClientAppointments")
+
+  // Relacionamentos - Proprietário
+  ownedProperties Property[] @relation("OwnerProperties")
+
+  // Relacionamentos - Corretor
+  brokeredProperties Property[]    @relation("BrokerProperties")
+  brokerAppointments Appointment[] @relation("BrokerAppointments")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([email])
+}
+
+model SearchHistory {
+  id    String @id @default(uuid())
+  query String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Property {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  price       Decimal  @db.Decimal(12, 2)
+  address     String
+  photos      String[]
+
+  propertyType    PropertyType
+  transactionType TransactionType
+  status          PropertyStatus  @default(RASCUNHO) // Atualizado: Padrão agora é Rascunho
+
+  // Características Estruturais
+  bedrooms  Int
+  bathrooms Int
+  area      Decimal  @db.Decimal(10, 2)
+  garages   Int
+  amenities String[]
+
+  // Métricas de Performance
+  viewsCount Int @default(0)
+
+  // Relacionamentos
+  ownerId String
+  owner   User   @relation("OwnerProperties", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  brokerId String?
+  broker   User?   @relation("BrokerProperties", fields: [brokerId], references: [id], onDelete: SetNull)
+
+  favoritedBy  User[]        @relation("UserFavorites")
+  leads        Lead[]
+  appointments Appointment[]
+
+  publishedAt DateTime? // Novo: Base real para calcular "Dias Ativo" no dashboard do proprietário
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([propertyType])
+  @@index([transactionType])
+  @@index([price])
+  @@index([ownerId])
+  @@index([brokerId])
+  @@index([createdAt])
+  @@index([publishedAt])
+}
+
+model Lead {
+  id          String  @id @default(uuid())
+  clientName  String
+  clientEmail String
+  clientPhone String
+  message     String? @db.Text // Novo: Mensagem enviada pelo cliente, visível no painel do Proprietário/Corretor
+
+  status        LeadStatus @default(NOVO)
+  lastContactAt DateTime?
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([lastContactAt])
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  scheduledAt DateTime
+  status      AppointmentStatus @default(PENDENTE)
+
+  clientId String
+  client   User   @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  brokerId String
+  broker   User   @relation("BrokerAppointments", fields: [brokerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([brokerId])
+  @@index([propertyId])
+  @@index([scheduledAt])
 }
