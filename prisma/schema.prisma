@@ -33,10 +33,10 @@ enum TransactionType {
 }
 
 enum PropertyStatus {
-  RASCUNHO    
-  PUBLICADO   
+  RASCUNHO
+  PUBLICADO
   PAUSADO
-  VENDIDO     
+  VENDIDO
   ALUGADO
   INATIVO
 }
@@ -57,12 +57,12 @@ enum AppointmentStatus {
 // ==========================================
 
 model User {
-  id           String   @id @default(uuid())
+  id           String  @id @default(uuid())
   name         String
-  email        String   @unique
+  email        String  @unique
   passwordHash String
-  phone        String?
-  avatarUrl    String?  // NOVO: Necessário para a foto de perfil do Corretor/Usuário (Mockup 6/7)
+  phone        String
+  avatarUrl    String? // NOVO: Necessário para a foto de perfil do Corretor/Usuário (Mockup 6/7)
   role         Role
 
   // Relacionamentos - Cliente
@@ -71,11 +71,11 @@ model User {
   clientAppointments Appointment[]   @relation("ClientAppointments")
 
   // Relacionamentos - Proprietário
-  ownedProperties    Property[]      @relation("OwnerProperties")
+  ownedProperties Property[] @relation("OwnerProperties")
 
   // Relacionamentos - Corretor
-  brokeredProperties Property[]      @relation("BrokerProperties")
-  brokerAppointments Appointment[]   @relation("BrokerAppointments")
+  brokeredProperties Property[]    @relation("BrokerProperties")
+  brokerAppointments Appointment[] @relation("BrokerAppointments")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -85,57 +85,57 @@ model User {
 }
 
 model SearchHistory {
-  id        String   @id @default(uuid())
-  query     String   
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id    String @id @default(uuid())
+  query String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 
   @@index([userId])
-  @@index([createdAt]) 
+  @@index([createdAt])
 }
 
 model Property {
-  id              String         @id @default(uuid())
-  title           String
-  description     String         @db.Text
-  price           Decimal        @db.Decimal(12, 2)
-  address         String
-  latitude        Float?         // NOVO: Coordenada para o mapa interativo (Mockup 7)
-  longitude       Float?         // NOVO: Coordenada para o mapa interativo (Mockup 7)
-  photos          String[]       
-  
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  price       Decimal  @db.Decimal(12, 2)
+  address     String
+  latitude    Float? // NOVO: Coordenada para o mapa interativo (Mockup 7)
+  longitude   Float? // NOVO: Coordenada para o mapa interativo (Mockup 7)
+  photos      String[]
+
   propertyType    PropertyType
   transactionType TransactionType
-  status          PropertyStatus @default(RASCUNHO) 
-  isFeatured      Boolean        @default(false) // NOVO: Controla a tag amarela "Destaque" (Mockup 5)
+  status          PropertyStatus  @default(RASCUNHO)
+  isFeatured      Boolean         @default(false) // NOVO: Controla a tag amarela "Destaque" (Mockup 5)
 
   // Características Estruturais
-  bedrooms        Int
-  bathrooms       Int
-  area            Decimal        @db.Decimal(10, 2)
-  garages         Int
-  amenities       String[]       
+  bedrooms  Int
+  bathrooms Int
+  area      Decimal  @db.Decimal(10, 2)
+  garages   Int
+  amenities String[]
 
   // Métricas de Performance
-  viewsCount      Int            @default(0)
-  
+  viewsCount Int @default(0)
+
   // Relacionamentos
-  ownerId         String
-  owner           User           @relation("OwnerProperties", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+  owner   User   @relation("OwnerProperties", fields: [ownerId], references: [id], onDelete: Cascade)
 
-  brokerId        String?
-  broker          User?          @relation("BrokerProperties", fields: [brokerId], references: [id], onDelete: SetNull)
+  brokerId String?
+  broker   User?   @relation("BrokerProperties", fields: [brokerId], references: [id], onDelete: SetNull)
 
-  favoritedBy     User[]         @relation("UserFavorites")
-  leads           Lead[]
-  appointments    Appointment[]
+  favoritedBy  User[]        @relation("UserFavorites")
+  leads        Lead[]
+  appointments Appointment[]
 
-  publishedAt     DateTime?      
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([status])
   @@index([propertyType])
@@ -148,20 +148,20 @@ model Property {
 }
 
 model Lead {
-  id            String     @id @default(uuid())
-  clientName    String
-  clientEmail   String
-  clientPhone   String
-  message       String?    @db.Text 
+  id          String  @id @default(uuid())
+  clientName  String
+  clientEmail String
+  clientPhone String
+  message     String? @db.Text
 
   status        LeadStatus @default(NOVO)
-  lastContactAt DateTime?  
+  lastContactAt DateTime?
 
-  propertyId    String
-  property      Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([propertyId])
   @@index([status])
@@ -170,20 +170,20 @@ model Lead {
 
 model Appointment {
   id          String            @id @default(uuid())
-  scheduledAt DateTime          
+  scheduledAt DateTime
   status      AppointmentStatus @default(PENDENTE)
 
-  clientId    String
-  client      User              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+  client   User   @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
 
-  propertyId  String
-  property    Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
-  brokerId    String
-  broker      User              @relation("BrokerAppointments", fields: [brokerId], references: [id], onDelete: Cascade)
+  brokerId String
+  broker   User   @relation("BrokerAppointments", fields: [brokerId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([clientId])
   @@index([brokerId])
