@@ -1,25 +1,27 @@
 import { z } from "zod";
 
-// Schema comum de dados do imóvel
-export const propertyCoreSchema = z.object({
-  title: z.string().min(5, "O título deve ter no mínimo 5 caracteres"),
-  description: z.string().min(10, "Forneça uma descrição detalhada"),
-  price: z.number().positive("O preço deve ser maior que zero"),
-  address: z.string().min(5, "Endereço obrigatório"),
-  latitude: z.number(),
-  longitude: z.number(),
+export const createPropertySchema = z.object({
+  title: z.string().min(5, "Título deve ter no mínimo 5 caracteres"),
+  description: z.string().min(20, "Descrição deve ter no mínimo 20 caracteres"),
+  price: z.number().positive("Preço deve ser positivo"),
+  address: z.string().min(5, "Endereço muito curto"),
+  latitude: z.number().min(-90).max(90, "Latitude inválida"),
+  longitude: z.number().min(-180).max(180, "Longitude inválida"),
   propertyType: z.enum(["CASA", "APARTAMENTO"]),
   transactionType: z.enum(["VENDA", "ALUGUEL"]),
-  bedrooms: z.number().int().nonnegative(),
-  bathrooms: z.number().int().nonnegative(),
-  area: z.number().positive(),
-  garages: z.number().int().nonnegative(),
+  bedrooms: z.number().int().min(0),
+  bathrooms: z.number().int().min(0),
+  area: z.number().positive("Área deve ser positiva"),
+  garages: z.number().int().min(0),
   amenities: z.array(z.string()).default([]),
+  ownerId: z.uuid("ID do proprietário inválido"),
+  brokerId: z.uuid().optional(),
 });
 
-// Schema para validação do cabeçalho (Autenticação Simples)
-export const authHeaderSchema = z.object({
-  "x-user-id": z.string().uuid("ID de usuário inválido ou não fornecido"),
+export const getPropertiesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
 });
 
-export type PropertyCoreData = z.infer<typeof propertyCoreSchema>;
+export type GetPropertiesQuery = z.infer<typeof getPropertiesQuerySchema>;
+export type CreatePropertyBody = z.infer<typeof createPropertySchema>;

@@ -1,50 +1,89 @@
 import { prisma } from "../../utils/prisma";
-import { PropertyCoreData } from "./property.schema";
+import type { CreatePropertyBody } from "./property.schema";
+import type { GetPropertiesQuery } from "./property.schema";
 
-/**
- * Valida a "autenticação simples" verificando se o usuário existe e é PROPRIETARIO
- */
-async function validateOwner(userId: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+export async function getProperties(query: GetPropertiesQuery) {
+  const { page, limit } = query;
+  const skip = (page - 1) * limit;
 
-  if (!user) {
-    throw new Error("UNAUTHORIZED: Usuário não encontrado.");
-  }
+  const [properties, total] = await Promise.all([
+    prisma.property.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        price: true,
+        address: true,
+        latitude: true,
+        longitude: true,
+        photo: true,
+        propertyType: true,
+        transactionType: true,
+        status: true,
+        isFeatured: true,
+        bedrooms: true,
+        bathrooms: true,
+        area: true,
+        garages: true,
+        amenities: true,
+        viewsCount: true,
+        ownerId: true,
+        brokerId: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        // photo NÃO incluso para resposta leve
+      },
+    }),
+    prisma.property.count(),
+  ]);
 
-  if (user.role !== "PROPRIETARIO") {
-    throw new Error("FORBIDDEN: Apenas proprietários podem anunciar imóveis.");
-  }
-
-  return user;
+  return {
+    data: properties,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
-/**
- * Criação via Multipart (Processamento de binários)
- */
-export async function createPropertyWithFiles(
-  ownerId: string,
-  data: PropertyCoreData,
-  imageBuffers: Buffer[],
+export async function createProperty(
+  data: CreatePropertyBody,
+  photoBase64: string,
 ) {
-  await validateOwner(ownerId);
-
-  if (imageBuffers.length > 5) {
-    throw new Error("BAD_REQUEST: Permitido no máximo 5 fotos.");
-  }
-
-  // MOCK: Aqui você faria o upload dos buffers para AWS S3, Cloudinary, etc.
-  // Exemplo simulado de retorno de URLs após upload:
-  const uploadedUrls = imageBuffers.map(
-    (_, index) =>
-      `https://storage.swifthome.com/mock-upload-${Date.now()}-${index}.jpg`,
-  );
-
   const property = await prisma.property.create({
     data: {
-      ...data,
-      photos: uploadedUrls,
-      ownerId,
-      status: "RASCUNHO",
+      title: data.title,
+      description: data.description,
+      price: data.price.toString(), // Decimal espera string
+      address: data.address,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      photo: photoBase64, // string base64
+      propertyType: data.propertyType,
+      transactionType: data.transactionType,
+      bedrooms: data.bedrooms,
+      bathrooms: data.bathrooms,
+      area: data.area.toString(),
+      garages: data.garages,
+      amenities: data.amenities,
+      ownerId: data.ownerId,
+      brokerId: data.brokerId,
+    },
+    select: {
+      id: true,
+      title: true,
+      price: true,
+      address: true,
+      propertyType: true,
+      transactionType: true,
+      status: true,
+      createdAt: true,
     },
   });
 

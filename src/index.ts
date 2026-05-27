@@ -8,7 +8,7 @@ import {
 import { userRoutes } from "./modules/user/user.route";
 import { propertyRoutes } from "./modules/property/property.route";
 
-const app = fastify();
+const app = fastify({ logger: true });
 
 app.register(cors, { origin: "*" });
 
